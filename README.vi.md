@@ -19,13 +19,13 @@ Một đội subagent Claude Code nhận việc được giao (vé Jira, GitHub 
    └─ 8. 🛑 NGƯỜI REVIEW PR ────────── không tự merge
 ```
 
-| Thành phần | File (tiếng Anh) | Bản dịch | Model | Vai trò |
+| Thành phần | File (tiếng Anh) | Bản dịch | Model / effort mặc định | Vai trò |
 |---|---|---|---|---|
 | Skill `dev-task` | [SKILL.md](skills/dev-task/SKILL.md) | [vi](docs/vi/skills/dev-task/SKILL.md) | (session chính) | Orchestrator: điều phối, giữ 2 điểm dừng, báo tiến độ |
-| `dev-planner` | [dev-planner.md](agents/dev-planner.md) | [vi](docs/vi/agents/dev-planner.md) | opus / high | Điều tra, lập kế hoạch, phân tích test fail, lập lại kế hoạch |
+| `dev-planner` | [dev-planner.md](agents/dev-planner.md) | [vi](docs/vi/agents/dev-planner.md) | opus / medium | Điều tra, lập kế hoạch, phân tích test fail, lập lại kế hoạch |
 | `dev-implementer` | [dev-implementer.md](agents/dev-implementer.md) | [vi](docs/vi/agents/dev-implementer.md) | sonnet / medium | Code đúng theo hướng dẫn, không commit |
 | `dev-test-runner` | [dev-test-runner.md](agents/dev-test-runner.md) | [vi](docs/vi/agents/dev-test-runner.md) | haiku / low | Chạy test, ghi báo cáo, không sửa code |
-| `dev-reviewer` | [dev-reviewer.md](agents/dev-reviewer.md) | [vi](docs/vi/agents/dev-reviewer.md) | opus / high | Review logic, bug, regression, hợp đồng giữa các repo |
+| `dev-reviewer` | [dev-reviewer.md](agents/dev-reviewer.md) | [vi](docs/vi/agents/dev-reviewer.md) | opus / medium | Review logic, bug, regression, hợp đồng giữa các repo |
 
 > Prompt mà Claude Code thực sự nạp là bản **tiếng Anh**. Bản dịch tiếng Việt trong [docs/vi/](docs/vi/) chỉ để đọc hiểu, không được nạp. Hai bản lệch nhau thì bản tiếng Anh là chuẩn.
 
@@ -106,12 +106,28 @@ Ví dụ: chat tiếng Việt, vé tiếng Nhật, commit và PR tiếng Anh:
 
 Từ khóa trạng thái (`PASS`, `BLOCKED`, `VERDICT`...), tên biến và số thứ tự mục trong file plan luôn giữ nguyên để các agent đọc được của nhau. Comment trong code theo ngôn ngữ đang dùng trong repo.
 
+## Model và effort của agent
+
+Mặc định (bảng ở trên) giữ mức dùng token vừa phải: các agent Opus chạy với effort `medium`. Bạn có thể đổi model và effort cho từng agent, trong cùng file cấu hình với ngôn ngữ, dưới khóa `agents`:
+
+```json
+{ "agents": { "dev-planner": { "effort": "high" }, "dev-reviewer": { "model": "opus", "effort": "high" } } }
+```
+
+- Khóa: `dev-planner`, `dev-implementer`, `dev-test-runner`, `dev-reviewer` (không kèm tiền tố plugin). `model` và `effort` đều không bắt buộc.
+- `model`: `opus`, `sonnet`, `haiku`... `effort`: `low`, `medium`, `high`, `xhigh`, `max`.
+- Thứ tự ưu tiên, xét riêng cho từng agent và từng trường: nói thẳng trong yêu cầu (vd `/dev-task ABC-123, planner dùng effort high`) → `<thư mục làm việc>/.claude/dev-task.json` → `~/.claude/dev-task/config.json` → frontmatter của agent.
+- Orchestrator truyền giá trị qua tham số `model` / `effort` của công cụ Agent, nên cài qua plugin cũng dùng được mà không phải sửa prompt. Nếu bản Claude Code của bạn không hỗ trợ tham số đó, orchestrator sẽ báo và dùng frontmatter.
+
+Nâng `dev-planner` và `dev-reviewer` lên `high` giúp ích với task lớn hoặc nhiều repo, đổi lại tốn token hơn.
+
 ## Tùy biến
 
 - **Bản đồ hệ thống:** nếu bạn có skill mô tả kiến trúc hệ thống (repo nào làm gì, đường dẫn, lệnh test), orchestrator sẽ chuyển `SKILL.md` + `references/*.md` của skill đó cho planner đọc trước khi điều tra. `CLAUDE.md` / `AGENTS.md` của workspace cũng được dùng.
 - **Review style:** `dev-reviewer` cố ý bỏ qua style/naming/format, vì giả định đã có linter, formatter hoặc bot review lo. Muốn review cả style thì sửa [agents/dev-reviewer.md](agents/dev-reviewer.md).
 - **Attribution AI trong commit/PR:** theo quy tắc của bạn trong `CLAUDE.md` hoặc cấu hình harness. Plugin không áp đặt.
-- **Model / effort / số vòng lặp:** sửa frontmatter của từng agent, và giới hạn vòng lặp ở đầu [SKILL.md](skills/dev-task/SKILL.md).
+- **Model / effort:** xem [Model và effort của agent](#model-và-effort-của-agent). Nếu cài bằng symlink, bạn cũng có thể đổi mặc định trong frontmatter của từng agent.
+- **Số vòng lặp:** sửa ở đầu [SKILL.md](skills/dev-task/SKILL.md).
 
 Khi sửa prompt, hãy sửa bản tiếng Anh trước rồi cập nhật bản dịch trong `docs/vi/` và `docs/ja/` (tiếng Nhật) cho khớp.
 

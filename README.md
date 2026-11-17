@@ -19,13 +19,13 @@ A task force of Claude Code subagents that takes an assigned task — a Jira tic
    └─ 8. 🛑 HUMAN REVIEWS PRS ──────── never auto-merges
 ```
 
-| Component | File | Model | Role |
+| Component | File | Default model / effort | Role |
 |---|---|---|---|
 | Skill `dev-task` | [skills/dev-task/SKILL.md](skills/dev-task/SKILL.md) | (main session) | Orchestrator: coordinates, holds the 2 human gates, reports progress |
-| `dev-planner` | [agents/dev-planner.md](agents/dev-planner.md) | opus / high | Investigates, plans, diagnoses test failures, re-plans |
+| `dev-planner` | [agents/dev-planner.md](agents/dev-planner.md) | opus / medium | Investigates, plans, diagnoses test failures, re-plans |
 | `dev-implementer` | [agents/dev-implementer.md](agents/dev-implementer.md) | sonnet / medium | Implements exactly what the instructions say, never commits |
 | `dev-test-runner` | [agents/dev-test-runner.md](agents/dev-test-runner.md) | haiku / low | Runs tests, writes reports, never edits code |
-| `dev-reviewer` | [agents/dev-reviewer.md](agents/dev-reviewer.md) | opus / high | Reviews logic, bugs, regressions, cross-repository contracts |
+| `dev-reviewer` | [agents/dev-reviewer.md](agents/dev-reviewer.md) | opus / medium | Reviews logic, bugs, regressions, cross-repository contracts |
 
 Agents cannot see each other's conversations. All data moves through files in `RUN_DIR` = `~/.claude/dev-task/runs/<TASK_ID>/`, outside every repository:
 
@@ -104,12 +104,28 @@ Example: chat in Vietnamese, tickets in Japanese, commits and PRs in English:
 
 Status keywords (`PASS`, `BLOCKED`, `VERDICT`...), variable names, and section numbers in the plan file are never translated, so agents can always parse each other's output. Comments in code follow the language the repository already uses.
 
+## Agent models and effort
+
+The defaults (table above) keep token usage moderate: Opus agents run at `medium` effort. You can override the model and effort of each agent in the same configuration files as the languages, under the `agents` key:
+
+```json
+{ "agents": { "dev-planner": { "effort": "high" }, "dev-reviewer": { "model": "opus", "effort": "high" } } }
+```
+
+- Keys: `dev-planner`, `dev-implementer`, `dev-test-runner`, `dev-reviewer` (without the plugin prefix). `model` and `effort` are both optional.
+- `model`: `opus`, `sonnet`, `haiku`... `effort`: `low`, `medium`, `high`, `xhigh`, `max`.
+- Priority, per agent and per field: said explicitly in the request (e.g. `/dev-task ABC-123, use high effort for the planner`) → `<working directory>/.claude/dev-task.json` → `~/.claude/dev-task/config.json` → the agent's frontmatter.
+- The orchestrator passes the values as the Agent tool's `model` / `effort` parameters, so this works for plugin installs too, without editing the prompts. If your Claude Code version does not support a parameter, it tells you and falls back to the frontmatter.
+
+Raising `dev-planner` and `dev-reviewer` to `high` helps on large or multi-repository tasks, at a higher token cost.
+
 ## Customization
 
 - **System map:** if you have a skill describing your system architecture (which repository does what, paths, test commands), the orchestrator passes its `SKILL.md` + `references/*.md` to the planner before investigation. The workspace's `CLAUDE.md` / `AGENTS.md` are used too.
 - **Style review:** `dev-reviewer` deliberately ignores style/naming/formatting, assuming a linter, formatter, or review bot handles it. To review style as well, edit [agents/dev-reviewer.md](agents/dev-reviewer.md).
 - **AI attribution in commits/PRs:** follows your rules in `CLAUDE.md` or harness settings. The plugin does not impose any.
-- **Model / effort / loop limits:** edit each agent's frontmatter, and the loop limits at the top of [SKILL.md](skills/dev-task/SKILL.md).
+- **Model / effort:** see [Agent models and effort](#agent-models-and-effort). With the symlink install you can also change the defaults in each agent's frontmatter.
+- **Loop limits:** edit the top of [SKILL.md](skills/dev-task/SKILL.md).
 
 ## Safety
 

@@ -19,13 +19,13 @@
    └─ 8. 🛑 人間が PR をレビュー ───── 自動マージはしない
 ```
 
-| コンポーネント | ファイル（英語） | 日本語訳 | モデル | 役割 |
+| コンポーネント | ファイル（英語） | 日本語訳 | デフォルトのモデル / effort | 役割 |
 |---|---|---|---|---|
 | スキル `dev-task` | [SKILL.md](skills/dev-task/SKILL.md) | [ja](docs/ja/skills/dev-task/SKILL.md) | （メインセッション） | Orchestrator: 統括、2つの承認ゲートの維持、進捗報告 |
-| `dev-planner` | [dev-planner.md](agents/dev-planner.md) | [ja](docs/ja/agents/dev-planner.md) | opus / high | 調査、計画、テスト失敗の原因分析、再計画 |
+| `dev-planner` | [dev-planner.md](agents/dev-planner.md) | [ja](docs/ja/agents/dev-planner.md) | opus / medium | 調査、計画、テスト失敗の原因分析、再計画 |
 | `dev-implementer` | [dev-implementer.md](agents/dev-implementer.md) | [ja](docs/ja/agents/dev-implementer.md) | sonnet / medium | 指示どおりに実装、コミットはしない |
 | `dev-test-runner` | [dev-test-runner.md](agents/dev-test-runner.md) | [ja](docs/ja/agents/dev-test-runner.md) | haiku / low | テスト実行、レポート作成、コードは編集しない |
-| `dev-reviewer` | [dev-reviewer.md](agents/dev-reviewer.md) | [ja](docs/ja/agents/dev-reviewer.md) | opus / high | ロジック、バグ、リグレッション、リポジトリ間の契約をレビュー |
+| `dev-reviewer` | [dev-reviewer.md](agents/dev-reviewer.md) | [ja](docs/ja/agents/dev-reviewer.md) | opus / medium | ロジック、バグ、リグレッション、リポジトリ間の契約をレビュー |
 
 > Claude Code が実際に読み込むプロンプトは**英語版**です。[docs/ja/](docs/ja/) の日本語訳は読解用で、読み込まれません。両者が食い違う場合は英語版が正となります。
 
@@ -106,12 +106,28 @@ cd agent-taskforce && ./install.sh
 
 ステータスキーワード（`PASS`、`BLOCKED`、`VERDICT`…）、変数名、計画ファイルのセクション番号は、エージェント同士が出力をパースできるよう常に翻訳されません。コード内のコメントはリポジトリで既に使われている言語に従います。
 
+## エージェントのモデルと effort
+
+デフォルト（上の表）はトークン消費を抑えた設定で、Opus のエージェントは effort `medium` で動きます。言語と同じ設定ファイルの `agents` キーで、エージェントごとにモデルと effort を上書きできます:
+
+```json
+{ "agents": { "dev-planner": { "effort": "high" }, "dev-reviewer": { "model": "opus", "effort": "high" } } }
+```
+
+- キー: `dev-planner`、`dev-implementer`、`dev-test-runner`、`dev-reviewer`（プラグインのプレフィックスなし）。`model` と `effort` はどちらも省略可能です。
+- `model`: `opus`、`sonnet`、`haiku`… `effort`: `low`、`medium`、`high`、`xhigh`、`max`。
+- 優先順位（エージェントごと、フィールドごと）: 依頼の中で明示（例: `/dev-task ABC-123、planner は effort high で`） → `<作業ディレクトリ>/.claude/dev-task.json` → `~/.claude/dev-task/config.json` → エージェントの frontmatter。
+- orchestrator はこの値を Agent ツールの `model` / `effort` パラメータとして渡すため、プラグインでインストールした場合もプロンプトを編集せずに使えます。お使いの Claude Code がそのパラメータに対応していない場合は、その旨を伝えて frontmatter の値を使います。
+
+大規模なタスクや複数リポジトリのタスクでは、`dev-planner` と `dev-reviewer` を `high` にすると効果がありますが、トークン消費は増えます。
+
 ## カスタマイズ
 
 - **システムマップ:** システム構成（どのリポジトリが何を担当するか、パス、テストコマンド）を説明するスキルがあれば、orchestrator はそのスキルの `SKILL.md` + `references/*.md` を調査前に planner へ渡します。ワークスペースの `CLAUDE.md` / `AGENTS.md` も使われます。
 - **スタイルのレビュー:** `dev-reviewer` は、linter、formatter、レビューボットが担当する前提で、スタイル/命名/フォーマットを意図的に無視します。スタイルもレビューしたい場合は [agents/dev-reviewer.md](agents/dev-reviewer.md) を編集してください。
 - **コミット/PR の AI 帰属表示:** `CLAUDE.md` またはハーネス設定にあるあなたのルールに従います。プラグイン側では強制しません。
-- **モデル / effort / ループ上限:** 各エージェントの frontmatter と、[SKILL.md](skills/dev-task/SKILL.md) 冒頭のループ上限を編集してください。
+- **モデル / effort:** [エージェントのモデルと effort](#エージェントのモデルと-effort) を参照してください。シンボリックリンクでインストールした場合は、各エージェントの frontmatter でデフォルトを変更することもできます。
+- **ループ上限:** [SKILL.md](skills/dev-task/SKILL.md) の冒頭を編集してください。
 
 プロンプトを編集する際は、まず英語版を修正し、その後 `docs/ja/` と `docs/vi/` の翻訳を合わせて更新してください。
 

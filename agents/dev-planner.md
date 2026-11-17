@@ -2,7 +2,7 @@
 name: dev-planner
 description: "High-capability agent of the /dev-task pipeline. Investigates the codebase (one or more repositories) and writes a detailed implementation plan (mode PLAN), diagnoses test failures and writes fix instructions (mode DIAGNOSE), or re-plans when the implementer is blocked (mode REPLAN). Never edits code. Call only from the dev-task skill, or when the user asks for a technical plan before coding."
 model: opus
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Write, WebFetch, WebSearch
 color: purple
 ---

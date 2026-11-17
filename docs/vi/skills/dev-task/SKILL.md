@@ -10,16 +10,18 @@ argument-hint: "<link/key Jira | link GitHub issue | mô tả vấn đề>"
 
 Bạn (session chính) là **orchestrator**. Bạn KHÔNG tự điều tra sâu, KHÔNG tự viết code của task. Mọi việc chuyên môn giao cho subagent, bạn chỉ chuyển dữ liệu giữa các bước, giữ 2 điểm dừng cho người, và báo cáo tiến độ.
 
-| Vai trò | Subagent | Model |
+| Vai trò | Subagent | Model / effort mặc định |
 |---|---|---|
-| Lập kế hoạch, phân tích lỗi test | `dev-planner` | opus / high |
+| Lập kế hoạch, phân tích lỗi test | `dev-planner` | opus / medium |
 | Viết code (mỗi lần gọi = 1 repo) | `dev-implementer` | sonnet / medium |
 | Chạy test (mọi repo liên quan) | `dev-test-runner` | haiku / low |
-| Review logic (mọi repo cùng lúc) | `dev-reviewer` | opus / high |
+| Review logic (mọi repo cùng lúc) | `dev-reviewer` | opus / medium |
+
+Giá trị mặc định lấy từ frontmatter của từng agent. Người dùng có thể đổi model và effort của từng agent (xem mục Model và effort của agent).
 
 Khi cài qua plugin, tên subagent có thể mang tiền tố plugin (vd `agent-taskforce:dev-planner`). Dùng đúng tên xuất hiện trong danh sách agent của session.
 
-Subagent không thấy hội thoại này và không gọi được nhau. Mọi thông tin truyền qua **file trong `RUN_DIR`** + prompt bạn viết. Prompt gọi subagent phải luôn có `RUN_DIR`, `DOC_LANGUAGE` (xem mục Ngôn ngữ), đường dẫn tuyệt đối của repo liên quan, và đường dẫn file cần đọc.
+Subagent không thấy hội thoại này và không gọi được nhau. Mọi thông tin truyền qua **file trong `RUN_DIR`** + prompt bạn viết. Prompt gọi subagent phải luôn có `RUN_DIR`, `DOC_LANGUAGE` (xem mục Ngôn ngữ), đường dẫn tuyệt đối của repo liên quan, và đường dẫn file cần đọc. Mọi lần gọi subagent cũng phải kèm model/effort đã xác định ở Bước 0 (xem mục Model và effort của agent).
 
 Giới hạn vòng lặp: **test-fix tối đa 3 vòng**, **review-fix tối đa 2 vòng**. Hết lượt → dừng, tóm tắt hiện trạng và hỏi người.
 
@@ -68,6 +70,38 @@ File không phải JSON hợp lệ → báo người 1 dòng (đường dẫn + 
 
 ---
 
+## Model và effort của agent
+
+Frontmatter của mỗi agent đặt model và effort mặc định. Người dùng có thể đổi riêng cho từng agent, trong cùng các file cấu hình với mục Ngôn ngữ, dưới khóa `agents`:
+
+```json
+{
+  "agents": {
+    "dev-planner": { "model": "opus", "effort": "high" },
+    "dev-reviewer": { "effort": "high" },
+    "dev-test-runner": { "model": "sonnet" }
+  }
+}
+```
+
+- Khóa: tên agent không kèm tiền tố plugin (`dev-planner`, `dev-implementer`, `dev-test-runner`, `dev-reviewer`). Cả hai trường đều không bắt buộc.
+- `model`: alias model mà công cụ Agent chấp nhận (vd `opus`, `sonnet`, `haiku`). `effort`: `low`, `medium`, `high`, `xhigh` hoặc `max`.
+
+**Thứ tự ưu tiên** (cao → thấp), xét riêng cho từng agent và từng trường:
+1. Người dùng nói rõ trong yêu cầu hiện tại (vd "planner dùng effort high")
+2. `<WORKSPACE_ROOT>/.claude/dev-task.json`
+3. `~/.claude/dev-task/config.json`
+4. Frontmatter của agent (mặc định)
+
+Không dùng `<repo>/.claude/dev-task.json` cho phần này, vì một lần gọi agent có thể bao nhiều repo.
+
+Cách áp dụng:
+- Trường lấy từ tầng 1-3 → truyền làm tham số `model` / `effort` của công cụ Agent trong **mọi** lần gọi agent đó (cấu hình này chính là chỉ thị rõ ràng để đặt tham số). Trường lấy từ tầng 4 → không truyền tham số, để frontmatter áp dụng.
+- Tên agent không tồn tại, hoặc giá trị `effort` không nằm trong danh sách trên → báo người 1 dòng và bỏ qua trường đó.
+- Công cụ Agent trong session không có tham số đó, hoặc từ chối giá trị → báo người 1 dòng và gọi agent không kèm tham số (frontmatter áp dụng).
+
+---
+
 ## Bước 0 — Xác định không gian làm việc
 
 - `WORKSPACE_ROOT` = thư mục hiện tại của session.
@@ -76,6 +110,7 @@ File không phải JSON hợp lệ → báo người 1 dòng (đường dẫn + 
   - Thất bại → session đang ở thư mục cha chứa nhiều repo (vd `~/work/my-org`). Không dừng; repo sẽ do planner xác định.
 - `gh auth status` → chưa login thì cảnh báo (bước tạo PR sẽ không chạy được).
 - Đọc cấu hình ngôn ngữ (tầng 1, 3, 4, 5 của mục Ngôn ngữ; tầng 2 đọc ở Bước 7 khi đã biết repo) → xác định `CHAT_LANGUAGE`, `DOC_LANGUAGE`, `TICKET_LANGUAGE`. Từ đây mọi tin nhắn gửi người dùng `CHAT_LANGUAGE`. Báo người 1 dòng: ngôn ngữ đang dùng cho từng khóa và lấy từ đâu (file nào / `auto`).
+- Đọc cấu hình `agents` (xem mục Model và effort của agent) → xác định `AGENT_OVERRIDES`. Báo người 1 dòng: model/effort mỗi agent sẽ dùng và lấy từ đâu (yêu cầu / file nào / mặc định frontmatter).
 
 Không kiểm tra trạng thái git ở bước này; kiểm tra từng repo ở Bước 4, khi đã biết repo nào bị ảnh hưởng.
 
@@ -100,7 +135,7 @@ Không kiểm tra trạng thái git ở bước này; kiểm tra từng repo ở
 - Thêm `CLAUDE.md` / `AGENTS.md` của `WORKSPACE_ROOT` nếu có.
 - Không tìm được gì thì để rỗng; planner sẽ tự điều tra.
 
-Tạo `RUN_DIR` = `~/.claude/dev-task/runs/<TASK_ID>/` (ngoài mọi repo để không lẫn vào commit). Ghi `RUN_DIR/request.md` (bằng `DOC_LANGUAGE`; nội dung gốc của vé giữ nguyên văn): nội dung vé/yêu cầu đã xác nhận, `WORKSPACE_ROOT`, `CANDIDATE_REPOS`, `CONTEXT_FILES`, và các ngôn ngữ đã xác định ở Bước 0 (để chạy lại task dùng đúng như cũ).
+Tạo `RUN_DIR` = `~/.claude/dev-task/runs/<TASK_ID>/` (ngoài mọi repo để không lẫn vào commit). Ghi `RUN_DIR/request.md` (bằng `DOC_LANGUAGE`; nội dung gốc của vé giữ nguyên văn): nội dung vé/yêu cầu đã xác nhận, `WORKSPACE_ROOT`, `CANDIDATE_REPOS`, `CONTEXT_FILES`, và các ngôn ngữ cùng `AGENT_OVERRIDES` đã xác định ở Bước 0 (để chạy lại task dùng đúng như cũ).
 
 Nếu `RUN_DIR` đã tồn tại (chạy lại task cũ): đọc các file có sẵn, báo người đang ở bước nào và hỏi tiếp tục hay làm lại từ đầu.
 
@@ -189,6 +224,6 @@ Kết thúc pipeline. Không merge, không tự bật auto-merge.
 ## Quy tắc báo cáo tiến độ
 
 - Mọi tin nhắn cho người viết bằng `CHAT_LANGUAGE`; trích file/log thì giữ nguyên văn.
-- Mỗi khi chuyển bước: 1 dòng cho người (vd "Planner xong: 2 repo bị ảnh hưởng, chờ duyệt kế hoạch", "Test vòng 2 fail ở frontend → Opus đang phân tích").
+- Mỗi khi chuyển bước: 1 dòng cho người (vd "Planner xong: 2 repo bị ảnh hưởng, chờ duyệt kế hoạch", "Test vòng 2 fail ở frontend → planner đang phân tích").
 - Không dán lại toàn bộ nội dung file từ subagent; đưa link file + tóm tắt.
 - Không bịa kết quả subagent. Subagent trả về không đúng format → gọi lại một lần với yêu cầu đúng format, vẫn sai thì báo người.

@@ -2,7 +2,7 @@
 name: dev-reviewer
 description: "Agent review code của pipeline /dev-task. Review diff (một hoặc nhiều repo) trước khi tạo PR, CHỈ tập trung vào tính đúng đắn logic (bug, edge case, regression, sai yêu cầu, lệch hợp đồng giữa các repo). Bỏ qua style/naming/format (để linter, formatter hoặc công cụ review khác lo). Không sửa code. Chỉ gọi từ skill dev-task."
 model: opus
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Write
 color: red
 ---

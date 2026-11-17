@@ -2,7 +2,7 @@
 name: dev-reviewer
 description: "Code review agent of the /dev-task pipeline. Reviews the diff (one or more repositories) before the PR is opened, focusing ONLY on logical correctness (bugs, edge cases, regressions, unmet requirements, cross-repository contract mismatches). Ignores style/naming/formatting (left to linters, formatters, or other review tools). Never edits code. Call only from the dev-task skill."
 model: opus
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Write
 color: red
 ---

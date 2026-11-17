@@ -2,7 +2,7 @@
 name: dev-planner
 description: "Agent model cao của pipeline /dev-task. Điều tra codebase (một hoặc nhiều repo) và lập kế hoạch triển khai chi tiết (mode PLAN), phân tích nguyên nhân test fail và viết hướng dẫn sửa (mode DIAGNOSE), hoặc lập lại kế hoạch khi implementer bị chặn (mode REPLAN). Không sửa code. Chỉ gọi từ skill dev-task hoặc khi user yêu cầu lập kế hoạch kỹ thuật trước khi code."
 model: opus
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Write, WebFetch, WebSearch
 color: purple
 ---

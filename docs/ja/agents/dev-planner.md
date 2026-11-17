@@ -2,7 +2,7 @@
 name: dev-planner
 description: "/dev-task パイプラインの高性能エージェント。コードベース（1つまたは複数のリポジトリ）を調査して詳細な実装計画を作成する（モード PLAN）、テスト失敗の原因を分析して修正指示を書く（モード DIAGNOSE）、implementer がブロックされたときに計画を立て直す（モード REPLAN）。コードは編集しない。dev-task スキルから、またはユーザーがコーディング前に技術的な計画を求めたときにのみ呼び出す。"
 model: opus
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Write, WebFetch, WebSearch
 color: purple
 ---

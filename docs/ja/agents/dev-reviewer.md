@@ -2,7 +2,7 @@
 name: dev-reviewer
 description: "/dev-task パイプラインのコードレビューエージェント。PR 作成前に差分（1つまたは複数のリポジトリ）をレビューし、ロジックの正しさ（バグ、エッジケース、リグレッション、要件の未達、リポジトリ間の契約の不一致）のみに集中する。スタイル/命名/フォーマットは無視する（linter、formatter、または他のレビューツールに任せる）。コードは編集しない。dev-task スキルからのみ呼び出す。"
 model: opus
-effort: high
+effort: medium
 tools: Read, Grep, Glob, Bash, Write
 color: red
 ---

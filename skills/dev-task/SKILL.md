@@ -8,16 +8,18 @@ argument-hint: "<Jira key/link | GitHub issue link | problem description>"
 
 You (the main session) are the **orchestrator**. You do NOT investigate deeply and do NOT write the task's code yourself. All specialist work goes to subagents; you only pass data between steps, hold the 2 human checkpoints, and report progress.
 
-| Role | Subagent | Model |
+| Role | Subagent | Default model / effort |
 |---|---|---|
-| Planning, test-failure diagnosis | `dev-planner` | opus / high |
+| Planning, test-failure diagnosis | `dev-planner` | opus / medium |
 | Implementation (one call = one repository) | `dev-implementer` | sonnet / medium |
 | Running tests (all affected repositories) | `dev-test-runner` | haiku / low |
-| Logic review (all repositories at once) | `dev-reviewer` | opus / high |
+| Logic review (all repositories at once) | `dev-reviewer` | opus / medium |
+
+The defaults come from each agent's frontmatter. The user can override the model and effort of each agent (see Agent models and effort).
 
 When installed as a plugin, subagent names may carry the plugin prefix (e.g. `agent-taskforce:dev-planner`). Use the exact names shown in the session's agent list.
 
-Subagents cannot see this conversation and cannot call each other. All information travels through **files in `RUN_DIR`** plus the prompt you write. Every subagent prompt must include `RUN_DIR`, `DOC_LANGUAGE` (see Languages), the absolute path of each relevant repository, and the paths of the files to read.
+Subagents cannot see this conversation and cannot call each other. All information travels through **files in `RUN_DIR`** plus the prompt you write. Every subagent prompt must include `RUN_DIR`, `DOC_LANGUAGE` (see Languages), the absolute path of each relevant repository, and the paths of the files to read. Every subagent call also carries the model/effort overrides resolved in Step 0 (see Agent models and effort).
 
 Loop limits: **at most 3 test-fix rounds** and **at most 2 review-fix rounds**. When a limit is reached → stop, summarize the current state, and ask the human.
 
@@ -66,6 +68,38 @@ A file that is not valid JSON → tell the human in one line (path + error), ign
 
 ---
 
+## Agent models and effort
+
+Each agent's frontmatter sets its default model and effort. The user can override them per agent, in the same configuration files as Languages, under the `agents` key:
+
+```json
+{
+  "agents": {
+    "dev-planner": { "model": "opus", "effort": "high" },
+    "dev-reviewer": { "effort": "high" },
+    "dev-test-runner": { "model": "sonnet" }
+  }
+}
+```
+
+- Keys: the agent names without the plugin prefix (`dev-planner`, `dev-implementer`, `dev-test-runner`, `dev-reviewer`). Both fields are optional.
+- `model`: a model alias the Agent tool accepts (e.g. `opus`, `sonnet`, `haiku`). `effort`: `low`, `medium`, `high`, `xhigh`, or `max`.
+
+**Precedence** (highest → lowest), resolved per agent and per field:
+1. The user states it explicitly in the current request (e.g. "use high effort for the planner")
+2. `<WORKSPACE_ROOT>/.claude/dev-task.json`
+3. `~/.claude/dev-task/config.json`
+4. The agent's frontmatter (the default)
+
+`<repo>/.claude/dev-task.json` is not used for this, because one agent call can cover several repositories.
+
+Applying it:
+- A field resolved from levels 1-3 → pass it as the Agent tool's `model` / `effort` parameter on **every** call to that agent (this configuration is the explicit instruction to set it). A field resolved from level 4 → omit the parameter so the frontmatter applies.
+- Unknown agent name, or an `effort` value not in the list above → tell the human in one line and ignore that field.
+- The Agent tool in this session has no such parameter, or rejects the value → tell the human in one line and call the agent without it (the frontmatter applies).
+
+---
+
 ## Step 0 — Determine the workspace
 
 - `WORKSPACE_ROOT` = the session's current directory.
@@ -74,6 +108,7 @@ A file that is not valid JSON → tell the human in one line (path + error), ign
   - Fails → the session is in a parent directory holding several repositories (e.g. `~/work/my-org`). Do not stop; the planner will identify the repositories.
 - `gh auth status` → if not logged in, warn (the PR step will not work).
 - Read the language configuration (levels 1, 3, 4, 5 of Languages; level 2 is read in Step 7 once repositories are known) → determine `CHAT_LANGUAGE`, `DOC_LANGUAGE`, `TICKET_LANGUAGE`. From here on, every message to the human uses `CHAT_LANGUAGE`. Tell the human in one line which language each key uses and where it came from (which file / `auto`).
+- Read the `agents` configuration (see Agent models and effort) → determine `AGENT_OVERRIDES`. Tell the human in one line the model/effort each agent will use and where it came from (request / which file / frontmatter default).
 
 Do not check git state here; each repository is checked in Step 4, once the affected repositories are known.
 
@@ -98,7 +133,7 @@ Do not check git state here; each repository is checked in Step 4, once the affe
 - Add `CLAUDE.md` / `AGENTS.md` from `WORKSPACE_ROOT` if present.
 - Nothing found → leave it empty; the planner will investigate on its own.
 
-Create `RUN_DIR` = `~/.claude/dev-task/runs/<TASK_ID>/` (outside every repository so it never ends up in a commit). Write `RUN_DIR/request.md` (in `DOC_LANGUAGE`; quote the original ticket content verbatim): the confirmed ticket/request, `WORKSPACE_ROOT`, `CANDIDATE_REPOS`, `CONTEXT_FILES`, and the languages determined in Step 0 (so a re-run uses the same ones).
+Create `RUN_DIR` = `~/.claude/dev-task/runs/<TASK_ID>/` (outside every repository so it never ends up in a commit). Write `RUN_DIR/request.md` (in `DOC_LANGUAGE`; quote the original ticket content verbatim): the confirmed ticket/request, `WORKSPACE_ROOT`, `CANDIDATE_REPOS`, `CONTEXT_FILES`, and the languages and `AGENT_OVERRIDES` determined in Step 0 (so a re-run uses the same ones).
 
 If `RUN_DIR` already exists (re-running an old task): read the existing files, tell the human which step it reached, and ask whether to continue or start over.
 
@@ -187,6 +222,6 @@ End of pipeline. Do not merge, do not enable auto-merge.
 ## Progress reporting rules
 
 - Every message to the human is in `CHAT_LANGUAGE`; quotes from files/logs stay verbatim.
-- On every step change: one line to the human (e.g. "Planner done: 2 repositories affected, waiting for plan approval", "Test round 2 failed in frontend → Opus is diagnosing").
+- On every step change: one line to the human (e.g. "Planner done: 2 repositories affected, waiting for plan approval", "Test round 2 failed in frontend → the planner is diagnosing").
 - Do not paste whole subagent files; give the file link + a summary.
 - Never invent subagent results. If a subagent returns the wrong format → call it once more asking for the correct format; if still wrong, tell the human.

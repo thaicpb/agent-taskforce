@@ -5,5 +5,11 @@
     "ticket": "auto",
     "commit": "auto",
     "pr": "auto"
+  },
+  "agents": {
+    "dev-planner": { "model": "opus", "effort": "medium" },
+    "dev-implementer": { "model": "sonnet", "effort": "medium" },
+    "dev-test-runner": { "model": "haiku", "effort": "low" },
+    "dev-reviewer": { "model": "opus", "effort": "medium" }
   }
 }
