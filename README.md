@@ -1,6 +1,6 @@
 # agent-taskforce
 
-**English** | [Tiếng Việt](README.vi.md)
+**English** | [Tiếng Việt](README.vi.md) | [日本語](README.ja.md)
 
 A task force of Claude Code subagents that takes an assigned task — a Jira ticket, a GitHub issue, or a plain description — all the way to a pull request, with two human approval gates. Works for a single repository or several repositories changed together.
 
@@ -118,9 +118,9 @@ Status keywords (`PASS`, `BLOCKED`, `VERDICT`...), variable names, and section n
 - The test runner never installs dependencies, starts containers, or writes to real databases.
 - The pipeline stops at the PR: no merging, no auto-merge.
 
-## Vietnamese translations
+## Translations
 
-The skill and agent prompts are written in English. Vietnamese reference translations live in [docs/vi/](docs/vi/) — they are for reading only and are not loaded by Claude Code. The English files are the source of truth.
+The skill and agent prompts are written in English. Reference translations live in [docs/vi/](docs/vi/) (Vietnamese) and [docs/ja/](docs/ja/) (Japanese) — they are for reading only and are not loaded by Claude Code. The English files are the source of truth; when you edit a prompt, update the translations to match.
 
 ## License
 

@@ -1,6 +1,6 @@
 # agent-taskforce
 
-[English](README.md) | **Tiếng Việt**
+[English](README.md) | **Tiếng Việt** | [日本語](README.ja.md)
 
 Một đội subagent Claude Code nhận việc được giao (vé Jira, GitHub issue hoặc mô tả) và xử lý đến khi có Pull Request, với 2 điểm dừng cho người duyệt. Dùng được cho một repo hoặc nhiều repo cùng thay đổi.
 
@@ -113,7 +113,7 @@ Từ khóa trạng thái (`PASS`, `BLOCKED`, `VERDICT`...), tên biến và số
 - **Attribution AI trong commit/PR:** theo quy tắc của bạn trong `CLAUDE.md` hoặc cấu hình harness. Plugin không áp đặt.
 - **Model / effort / số vòng lặp:** sửa frontmatter của từng agent, và giới hạn vòng lặp ở đầu [SKILL.md](skills/dev-task/SKILL.md).
 
-Khi sửa prompt, hãy sửa bản tiếng Anh trước rồi cập nhật bản dịch trong `docs/vi/` cho khớp.
+Khi sửa prompt, hãy sửa bản tiếng Anh trước rồi cập nhật bản dịch trong `docs/vi/` và `docs/ja/` (tiếng Nhật) cho khớp.
 
 ## An toàn
 
