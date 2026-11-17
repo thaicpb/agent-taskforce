@@ -1,0 +1,9 @@
+{
+  "language": {
+    "chat": "auto",
+    "docs": "auto",
+    "ticket": "auto",
+    "commit": "auto",
+    "pr": "auto"
+  }
+}

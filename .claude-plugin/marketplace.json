@@ -1,0 +1,15 @@
+{
+  "name": "thaicpb",
+  "description": "Claude Code plugins by thaicpb.",
+  "owner": {
+    "name": "thaicpb",
+    "url": "https://github.com/thaicpb"
+  },
+  "plugins": [
+    {
+      "name": "agent-taskforce",
+      "source": "./",
+      "description": "Multi-agent dev pipeline: plan -> approve -> implement -> test -> review -> PR, across one or many repos."
+    }
+  ]
+}

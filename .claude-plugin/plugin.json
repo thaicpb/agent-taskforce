@@ -1,0 +1,20 @@
+{
+  "name": "agent-taskforce",
+  "version": "0.1.0",
+  "description": "A task force of Claude Code subagents that takes an assigned task from plan to pull request, with human approval gates: plan (Opus) -> human approval -> implement (Sonnet) -> test (Haiku) -> logic review (Opus) -> PR per repo -> human review. Works across one or many repos.",
+  "author": {
+    "name": "thaicpb",
+    "url": "https://github.com/thaicpb"
+  },
+  "homepage": "https://github.com/thaicpb/agent-taskforce",
+  "repository": "https://github.com/thaicpb/agent-taskforce",
+  "license": "MIT",
+  "keywords": [
+    "subagents",
+    "pipeline",
+    "planning",
+    "code-review",
+    "pull-request",
+    "multi-repo"
+  ]
+}
